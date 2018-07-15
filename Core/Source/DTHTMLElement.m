@@ -1166,7 +1166,11 @@ NSDictionary *_classesForNames = nil;
 		self.shadows = [shadow arrayOfCSSShadowsWithCurrentTextSize:_fontDescriptor.pointSize currentColor:_textColor];
 	}
 	
-	NSString *lineHeight = [[styles objectForKey:@"line-height"] lowercaseString];
+	id lineHeightAttr = [styles objectForKey:@"line-height"];
+	if ([lineHeightAttr isKindOfClass:[NSArray class]]) {
+		lineHeightAttr = [(NSArray*)lineHeightAttr firstObject];
+	}
+	NSString *lineHeight = [(NSString*)lineHeightAttr lowercaseString];
 	if (lineHeight)
 	{
 		if ([lineHeight isEqualToString:@"normal"])
