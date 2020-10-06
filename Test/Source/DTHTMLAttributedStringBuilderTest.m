@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 Drobnik.com. All rights reserved.
 //
 
+#import "DTCompatibility.h"
 #import "DTHTMLAttributedStringBuilderTest.h"
 #import "DTCoreTextConstants.h"
 
@@ -316,6 +317,19 @@
 	XCTAssertEqualObjects(URL, attachment.hyperLinkURL, @"Attachment URL and element URL should match!");
 }
 
+- (void)testURLwithCJKCharacters
+{
+	NSAttributedString *string = [self attributedStringFromHTMLString:@"<a href=\"http://www.example.com/你好\">hello</a>" options:nil];
+	
+	NSRange effectiveRange;
+	NSURL *link = [string attribute:NSLinkAttributeName atIndex:0 effectiveRange:&effectiveRange];
+	
+	NSString *linkStr = link.absoluteString;
+	NSString *expected = @"http://www.example.com/%E4%BD%A0%E5%A5%BD";
+	
+	XCTAssertTrue(effectiveRange.length==5, @"There should be 5 characters with the URL");
+	XCTAssertTrue([linkStr isEqualToString: expected], @"Output incorrect for CJK URL");
+}
 
 // setting ordered list starting number
 - (void)testOrderedListStartingNumber
@@ -1239,6 +1253,19 @@
 	NSString *hexColor = DTHexStringFromDTColor(color);
 	
 	XCTAssertEqualObjects(hexColor, @"0000ff", @"Color should be blue because inline style should be processed through lack of ignore option");
+}
+
+- (void)testBase64imageInLiElement
+{
+	NSAttributedString *attributedString = [self attributedStringFromHTMLString:@"<ul style=\"list-style: none;\">\n<li style=\"color: #333; list-style-image: url(\'data:image/png;base64,ABCDEF\');\">Li item</li></ul>" options:NULL];
+	
+	NSDictionary *attributes = [attributedString attributesAtIndex:0 effectiveRange:NULL];
+
+	DTColor *color = [attributes foregroundColor];
+	NSString *hexColor = DTHexStringFromDTColor(color);
+	
+	XCTAssertEqualObjects(hexColor, @"333333", @"Color attribute lost");
+	XCTAssertEqualObjects([attributedString string], @"Li item\n");
 }
 
 @end

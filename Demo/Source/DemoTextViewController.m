@@ -11,7 +11,7 @@
 #import <MediaPlayer/MediaPlayer.h>
 
 #import "DTTiledLayerWithoutFade.h"
-#import "DTWebVideoView.h"
+#import "DemoWebVideoView.h"
 
 
 @interface DemoTextViewController ()
@@ -85,12 +85,6 @@
 {
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 }
-
-
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
-	return YES;
-}
-
 
 #pragma mark UIViewController
 
@@ -258,6 +252,8 @@
 		[player stop];
 	}
 	
+	_textView.textDelegate = nil;
+	
 	[super viewWillDisappear:animated];
 }
 
@@ -265,11 +261,6 @@
 {
 	// prevent hiding of status bar in landscape because this messes up the layout guide calc
 	return NO;
-}
-
-- (void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration
-{
-	_needsAdjustInsetsOnLayout = YES;
 }
 
 // this is only called on >= iOS 5
@@ -585,7 +576,7 @@
 	}
 	else if ([attachment isKindOfClass:[DTIframeTextAttachment class]])
 	{
-		DTWebVideoView *videoView = [[DTWebVideoView alloc] initWithFrame:frame];
+		DemoWebVideoView *videoView = [[DemoWebVideoView alloc] initWithFrame:frame];
 		videoView.attachment = attachment;
 		
 		return videoView;
@@ -639,7 +630,14 @@
 	
 	if ([[UIApplication sharedApplication] canOpenURL:[URL absoluteURL]])
 	{
-		[[UIApplication sharedApplication] openURL:[URL absoluteURL]];
+		if (@available(iOS 10.0, *)) {
+			[[UIApplication sharedApplication] openURL:[URL absoluteURL] options:@{} completionHandler:nil];
+		} else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+			[[UIApplication sharedApplication] openURL:[URL absoluteURL]];
+#pragma clang diagnostic pop
+		}
 	}
 	else 
 	{
@@ -657,11 +655,22 @@
 	}
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wdeprecated-implementations"
 - (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+#pragma clang diagnostic pop
 {
 	if (buttonIndex != actionSheet.cancelButtonIndex)
 	{
-		[[UIApplication sharedApplication] openURL:[self.lastActionLink absoluteURL]];
+		if (@available(iOS 10.0, *)) {
+			[[UIApplication sharedApplication] openURL:[self.lastActionLink absoluteURL] options:@{} completionHandler:nil];
+		} else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+			[[UIApplication sharedApplication] openURL:[self.lastActionLink absoluteURL]];
+#pragma clang diagnostic pop
+		}
 	}
 }
 
@@ -675,8 +684,28 @@
 		
 		if ([[UIApplication sharedApplication] canOpenURL:[button.URL absoluteURL]])
 		{
-			UIActionSheet *action = [[UIActionSheet alloc] initWithTitle:[[button.URL absoluteURL] description] delegate:self cancelButtonTitle:@"Cancel" destructiveButtonTitle:nil otherButtonTitles:@"Open in Safari", nil];
-			[action showFromRect:button.frame inView:button.superview animated:YES];
+			if (@available(iOS 8.0, *)) {
+				UIAlertController *ac = [UIAlertController alertControllerWithTitle:[[button.URL absoluteURL] description]
+																			message:nil
+																	 preferredStyle:UIAlertControllerStyleActionSheet];
+				[ac addAction:[UIAlertAction actionWithTitle:@"Open in Safari"
+													   style:UIAlertActionStyleDefault
+													 handler:^(UIAlertAction * _Nonnull action) {
+					[[UIApplication sharedApplication] openURL:[self.lastActionLink absoluteURL] options:@{} completionHandler:nil];
+				}]];
+				
+				[ac addAction:[UIAlertAction actionWithTitle:@"Cancel"
+													   style:UIAlertActionStyleCancel
+													 handler:nil]];
+				
+				[self presentViewController:ac animated:YES completion:nil];
+			} else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+				UIActionSheet *action = [[UIActionSheet alloc] initWithTitle:[[button.URL absoluteURL] description] delegate:self cancelButtonTitle:@"Cancel" destructiveButtonTitle:nil otherButtonTitles:@"Open in Safari", nil];
+				[action showFromRect:button.frame inView:button.superview animated:YES];
+#pragma clang diagnostic pop
+			}
 		}
 	}
 }
@@ -755,7 +784,7 @@
 		// layout might have changed due to image sizes
 		// do it on next run loop because a layout pass might be going on
 		dispatch_async(dispatch_get_main_queue(), ^{
-			[_textView relayoutText];
+			[self->_textView relayoutText];
 		});
 	}
 }

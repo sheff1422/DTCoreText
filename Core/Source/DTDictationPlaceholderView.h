@@ -6,6 +6,10 @@
 //  Copyright (c) 2013 Cocoanetics. All rights reserved.
 //
 
+#import "DTCompatibility.h"
+
+#if TARGET_OS_IPHONE
+
 #import <UIKit/UIKit.h>
 
 /**
@@ -25,3 +29,5 @@
 @property (nonatomic, strong) id context;
 
 @end
+
+#endif
